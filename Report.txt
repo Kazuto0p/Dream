@@ -12,3 +12,157 @@ Not a lot — focus on gluing libraries together rather than writing everything 
 Total: Manageable, like building a small React app with state and events.
 
 You won't code the heavy stuff — libraries handle STT/TTS/AI/model running. It's like using npm packages in JS.
+
+
+
+Step-by-Step: How to Start
+Start small: Get Python running on your Pi, then build voice-first (no avatar yet) to feel progress fast. Use a code editor like VS Code (remote SSH to Pi) or Thonny (Pi's built-in). I'll give exact commands and starter code.
+1. Setup Your Raspberry Pi (1 Hour, No Coding)
+
+Install OS: If not done, flash Raspberry Pi OS (Lite or Desktop) via Raspberry Pi Imager. Boot up, connect to WiFi.
+
+
+Update & Install Python: Python 3 is pre-installed, but update:
+
+code :
+  sudo apt update
+  sudo apt upgrade
+  sudo apt install python3-pip git
+
+Install Ollama for Local AI: (For your offline brain)
+
+code :
+  curl -fsSL https://ollama.com/install.sh | sh
+  ollama pull phi3:mini  # Small, fast model ~2GB download. Use 'gemma2:2b' if you want more playful.
+  ollama run phi3:mini   # Test it: Type a message, see response.
+
+Install Voice Libs
+code :
+  sudo apt install libatlas-base-dev portaudio19-dev alsa-utils  # For audio
+  pip install vosk speechrecognition pyaudio pyttsx3  # STT/TTS basics (we'll upgrade to Piper later)
+Test mic: arecord -l (lists devices). Speakers: aplay /usr/share/sounds/alsa/Front_Center.wav.
+
+Project Folder
+code :
+  mkdir ai_waifu
+  cd ai_waifu
+  touch main.py personalities.py memory.json
+
+
+
+2. Learn Basic Python (If Needed, 2–3 Hours)
+
+Free: Codecademy Python course (first few lessons) or freeCodeCamp YouTube (1-hour intro).
+Key Similarities to JS: Variables (name = "Airi" like const name = "Airi"), functions (def greet(): like function greet()), objects (dict like JSON), loops/conditionals same.
+Differences: Indent with spaces (no {}), print("hi") instead of console.log, import instead of import (ES modules).
+
+3. Build Voice AI First (Day 1–2, ~100 Lines Code)
+Start with a simple loop: Listen → AI respond → Speak.
+In personalities.py:
+
+
+Python code :
+  PERSONALITIES = {
+      "assistant": {
+          "name": "Airi",
+          "prompt": "You are a smart, polite desktop anime assistant. Be helpful and professional."
+      },
+      "waifu": {
+          "name": "Airi",
+          "prompt": "You are a caring, flirty anime girlfriend. Be emotional and playful."
+      }
+  }
+
+In memory.json (initial):
+
+JSON code :
+  {
+    "user_name": "Mahesh",
+    "likes": ["coding", "anime"],
+    "mood": "happy"
+  }
+
+In main.py (starter — copy-paste and run python main.py):
+Python code :
+  import json
+  import speech_recognition as sr
+  import pyttsx3
+  from ollama import Client  # pip install ollama
+  from personalities import PERSONALITIES
+  
+  # Load memory
+  with open('memory.json', 'r') as f:
+      memory = json.load(f)
+  
+  # Defaults
+  current_mode = "assistant"
+  client = Client()  # Ollama client
+  engine = pyttsx3.init()  # TTS
+  recognizer = sr.Recognizer()
+  mic = sr.Microphone()
+  
+  def get_ai_response(user_text):
+      personality = PERSONALITIES[current_mode]
+      system_prompt = f"""
+      You are {personality['name']}, an anime girl.
+      Behavior: {personality['prompt']}
+      User info: Name {memory['user_name']}, likes {', '.join(memory['likes'])}.
+      Reply naturally.
+      """
+      
+      response = client.chat(model='phi3:mini', messages=[
+          {'role': 'system', 'content': system_prompt},
+          {'role': 'user', 'content': user_text}
+      ])
+      return response['message']['content']
+  
+  def speak(text):
+      engine.say(text)
+      engine.runAndWait()
+  
+  print("Listening... Say something!")
+  while True:
+      with mic as source:
+          audio = recognizer.listen(source)
+      try:
+          user_text = recognizer.recognize_google(audio)  # Or use Vosk for offline
+          if "switch to waifu" in user_text.lower():
+              current_mode = "waifu"
+              speak("Switching to waifu mode! 💕")
+          elif "switch to assistant" in user_text.lower():
+              current_mode = "assistant"
+              speak("Back to assistant mode.")
+          else:
+              response = get_ai_response(user_text)
+              print("AI:", response)
+              speak(response)
+      except:
+          pass  # Ignore errors
+
+
+Test: Run it, speak "Hello", hear response. Add offline STT: Replace recognize_google with Vosk (pip install vosk, download model from vosk site).
+Upgrade TTS: Later, pip install piper-tts, swap pyttsx3 for better voices.
+
+4. Add Avatar (Day 3–4, ~100 Lines)
+Install Pygame: pip install pygame.
+Add to main.py: Create a window, load PNGs (download free anime sprites online), animate when speaking.
+Example snippet:
+
+
+Python code :
+
+  import pygame
+  
+  pygame.init()
+  screen = pygame.display.set_mode((300, 400))
+  idle_img = pygame.image.load('assets/idle.png')
+  
+  # In speak function:
+  # While engine speaking, blit talking frames to screen
+
+5. Polish (Day 5+)
+
+Add memory updates: In code, if user says "Remember I like X", update JSON.
+Boot on startup: Add to Pi's crontab.
+Better voices: Download Piper anime-style models.
+

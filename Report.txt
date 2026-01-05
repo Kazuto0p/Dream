@@ -1,0 +1,14 @@
+
+
+
+
+How Much Coding Is Needed?
+Not a lot — focus on gluing libraries together rather than writing everything from scratch. You'll code:
+
+~50–100 lines for voice input/output (mic → text → speech).
+~50 lines for AI brain (prompts, personalities, memory).
+~100 lines for visuals (Pygame window, animations).
+~50 lines for main loop (listening, switching modes, etc.).
+Total: Manageable, like building a small React app with state and events.
+
+You won't code the heavy stuff — libraries handle STT/TTS/AI/model running. It's like using npm packages in JS.
